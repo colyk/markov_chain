@@ -11,29 +11,31 @@ class MarkovState:
         return self.data == other.data
 
     def __hash__(self):
-        return hash("markovstate") * hash(self.data)
+        return hash(self.data)
 
     def __str__(self):
         return str(self.data)
 
     def __repr__(self):
-        return f'MarkovState({self.data})'
-
-
-STATE_NOTHING = MarkovState(None)
+        return f"MarkovState({self.data})"
 
 
 class MarkovChain:
-    def __init__(self,
-                 begin_state,
-                 probabilities: Dict[Tuple[MarkovState, MarkovState], Union[Dict, Number]] = None,
-                 history=1,
-                 nothing_state=None):
+    def __init__(
+        self,
+        begin_state,
+        probabilities: Dict[
+            Tuple[MarkovState, MarkovState], Union[Dict, Number]
+        ] = None,
+        history=1,
+    ):
         self._begin_state = begin_state
         self._probabilities = probabilities or {}
-        self._states = {state1 for state1, _ in self._probabilities} | {state2 for _, state2 in self._probabilities}
+        self._states = {state1 for state1, _ in self._probabilities} | {
+            state2 for _, state2 in self._probabilities
+        }
         self._n_history = history
-        self._nothing_state = nothing_state or MarkovState(None)
+        self._nothing_state = MarkovState(None)
         self._history = self._initial_history()
 
     @property
@@ -47,7 +49,9 @@ class MarkovChain:
     def reset(self):
         self.current_state = self._begin_state
 
-    def add_probability(self, state_1, state_2, probability: Union[Dict, Number], last_states=None):
+    def add_probability(
+        self, state_1, state_2, probability: Union[Dict, Number], last_states=None
+    ):
         if last_states is None:
             self._probabilities[(state_1, state_2)] = probability
         else:
@@ -66,21 +70,23 @@ class MarkovChain:
 
     def __next__(self):
         try:
-            next_possible_states, next_possible_probabilities = zip(*self._next_possible_states_and_probabilities())
+            next_possible_states, next_possible_probabilities = zip(
+                *self._next_possible_states_and_probabilities()
+            )
         except ValueError:
             self.reset()
             return self._begin_state
 
         next_state = self._get_next_possible_state(
-            next_possible_states,
-            next_possible_probabilities
+            next_possible_states, next_possible_probabilities
         )
         self.current_state = next_state
         return next_state.data
 
     def _next_possible_states_and_probabilities(self):
         return [
-            (state2, probability) for (state1, state2), probability in self._probabilities.items()
+            (state2, probability)
+            for (state1, state2), probability in self._probabilities.items()
             if self.current_state == state1
         ]
 
@@ -95,25 +101,29 @@ class MarkovChain:
             return probabilities
 
         if len(history) == 0:
-            raise ValueError('empty history (too long probability data): ' + str(probabilities))
+            raise ValueError(
+                "empty history (too long probability data): " + str(probabilities)
+            )
 
         for last_state, probability in probabilities.items():
             if history[0] == last_state:
                 if isinstance(probability, Number):
                     return probability
 
-                return self._get_probabilities_for_current_history(probability, history[1:])
+                return self._get_probabilities_for_current_history(
+                    probability, history[1:]
+                )
             elif history[0] == self._nothing_state:
                 return 0
 
         return 0
 
-    def _get_next_possible_state(self, next_possible_states, next_possible_probabilities) -> MarkovState:
+    def _get_next_possible_state(
+        self, next_possible_states, next_possible_probabilities
+    ) -> MarkovState:
         next_possible_probabilities: Iterator[Number] = map(
-            self._get_probabilities_for_current_history,
-            next_possible_probabilities
+            self._get_probabilities_for_current_history, next_possible_probabilities
         )
-        return random.choices(next_possible_states, weights=next_possible_probabilities)[0]
-
-if __name__ == '__main__':
-    m = MarkovChain()
+        return random.choices(
+            next_possible_states, weights=next_possible_probabilities
+        )[0]
