@@ -1,3 +1,4 @@
 {
-    "python.formatting.provider": "black"
+    "python.formatting.provider": "black",
+    "python.pythonPath": "/home/colykxer/.local/share/virtualenvs/markov_chain-067-Zhce/bin/python"
 }
