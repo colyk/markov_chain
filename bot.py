@@ -144,4 +144,4 @@ class Bot:
 
 if __name__ == "__main__":
     bot = Bot()
-    bot.local_run()
+    bot.web_run()
