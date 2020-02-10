@@ -38,6 +38,24 @@ class MarkovChain:
         self._nothing_state = MarkovState(None)
         self._history = self._initial_history()
 
+    @staticmethod
+    def get_words_propabilities(text: str) -> Dict:
+        propabilities = {}
+        text = text.split()
+        for first_word, second_word in zip(text, text[1:]):
+            if first_word in propabilities:
+                if second_word in propabilities[first_word]:
+                    propabilities[first_word][second_word] += 1
+                else:
+                    propabilities[first_word][second_word] = 1
+            else:
+                propabilities[first_word] = {second_word: 1}
+
+        for key, choices in propabilities.items():
+            events = sum(choices.values())
+            for k, e in choices.items():
+                propabilities[key][k] = e / events
+        return propabilities
     @property
     def current_state(self):
         return self._history[-1]
@@ -127,3 +145,27 @@ class MarkovChain:
         return random.choices(
             next_possible_states, weights=next_possible_probabilities
         )[0]
+
+if __name__ == "__main__":
+    with open("example_text.txt", encoding="utf-8") as f:
+        propabilities = MarkovChain.get_words_propabilities(f.read())
+
+    init_word = random.choice(list(propabilities.keys()))
+    mc = MarkovChain(MarkovState(init_word), history=5000)
+    for word, prop in propabilities.items():
+        state_1 = MarkovState(word)
+        for word_2, value in prop.items():
+            state_2 = MarkovState(word_2)
+            mc.add_probability(state_1, state_2, value)
+
+    sentence_count = 3
+    words_treshold = sentence_count * 25
+    result = "."
+    for word in mc:
+        if result.count(".") > sentence_count:
+            break
+        if result.endswith("."):
+            word = word.capitalize()
+        result += f" {word}"
+
+    print(f"Started from word: {init_word}\n{result[1:]}")

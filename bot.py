@@ -7,8 +7,6 @@ import telegram
 from telegram.ext import CommandHandler, Filters, MessageHandler, Updater
 
 from markov_chain import MarkovChain, MarkovState
-from text_propabilities import get_words_propabilities
-
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -150,12 +148,12 @@ class Bot:
     def calc_markov(self, file):
         try:
             with open(file, encoding="utf-8") as f:
-                propabilities = get_words_propabilities(f.read())
+                propabilities = MarkovChain.get_words_propabilities(f.read())
         except FileNotFoundError:
             return BAD_FILE_ERROR
 
         init_word = random.choice(list(propabilities.keys()))
-        mc = MarkovChain(MarkovState(init_word), history=200)
+        mc = MarkovChain(MarkovState(init_word))
         for word, prop in propabilities.items():
             state_1 = MarkovState(word)
             for word_2, value in prop.items():
@@ -163,9 +161,9 @@ class Bot:
                 mc.add_probability(state_1, state_2, value)
 
         words_treshold = self.sentence_count * 25
-        result = "."
+        result = init_word.capitalize()
         for word in mc:
-            if result.count(".") > self.sentence_count:
+            if self.get_sentence_count(result) >= self.sentence_count:
                 break
             if result.count(" ") > words_treshold:
                 return BAD_FILE_ERROR
@@ -173,7 +171,13 @@ class Bot:
                 word = word.capitalize()
             result += f" {word}"
 
-        return f"Started from word: {init_word}\n{result[1:]}"
+        return result
+
+    @classmethod
+    def get_sentence_count(cls, text: str) -> int:
+        return (
+            text.count(".") + text.count("!") + text.count("?") - text.count("...") * 3
+        )
 
     def user_dir(self, update):
         user_dir_path = op.join(self.static_dir, str(update.message.chat_id))
